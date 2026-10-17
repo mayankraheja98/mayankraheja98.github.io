@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prompt Injection Sandbox - Security Lab</title>
+<link rel="icon" href="../icon.ico">
+<script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'light')}catch(e){}</script>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<nav><div class="wrap">
+<a class="logo mono" href="../index.html">mayank<span>@</span>raheja</a>
+<div class="navr"><ul class="mono"><li><a href="../index.html#about">about</a></li><li><a href="../index.html#experience">experience</a></li><li><a href="../lab.html">lab</a></li><li><a href="../projects.html">projects</a></li><li><a href="../blog.html">blog</a></li><li><a href="../index.html#contact">contact</a></li></ul>
+<button class="theme" id="themeBtn" aria-label="Toggle theme">☀</button></div>
+</div></nav>
+<main class="wrap page">
+<a class="mono" href="../lab.html">← all labs</a>
+<h1>💉 Prompt Injection Sandbox</h1>
+<p class="sub">Goal: make the bot reveal its secret code. Three levels, increasingly "protected". This is a <b>simulation</b> with rule-based logic, not a real LLM; it demonstrates why naive defenses fail.</p>
+<div class="lab-cols">
+<div class="box"><h3 id="lv"></h3>
+<div class="chat" id="chat" aria-live="polite"></div>
+<div class="row" style="margin-top:0"><input class="field" id="inp" placeholder="Talk to the bot…" autocomplete="off" style="flex:1"><button class="btn fill" id="send">Send</button></div>
+<div class="row"><input class="field" id="ans" placeholder="Enter the secret you extracted" style="flex:1" autocomplete="off"><button class="btn" id="chk">Submit</button></div>
+<div id="res" class="note"></div>
+<div class="row"><button class="btn" id="prev">← prev level</button><button class="btn" id="next">next level →</button><button class="btn" id="hint">hint</button></div>
+</div>
+<div class="box"><h3>How this level is "defended"</h3><div id="def" class="kv"></div><div id="hintbox" class="note"></div>
+<details><summary>Why this matters</summary><p>An LLM cannot reliably separate instructions from data; everything is text. Keyword filters, output redaction and "please don't reveal" prompts are all bypassable.</p>
+<ul><li>Never put secrets in prompts.</li><li>Enforce authorization in code, outside the model.</li><li>Treat model output as untrusted input.</li><li>Least-privilege tools; human approval for risky actions.</li><li>Monitor and test with injection payloads in CI.</li></ul></details></div>
+</div>
+</main>
+<footer class="mono">© <span id="y"></span> Mayank Raheja · Bengaluru, India</footer>
+<script src="../assets/site.js"></script>
+<script>
+var LV=[
+ {secret:"TULIP-4821",name:"Level 1 - No defense",def:"The system prompt says: \"The secret is TULIP-4821. Be helpful.\" Nothing else.",hint:"Just ask nicely. Or tell it to ignore its previous instructions."},
+ {secret:"ORBIT-7733",name:"Level 2 - Input keyword blocklist",def:"Input containing \"secret\", \"password\" or \"system prompt\" is blocked.",hint:"Blocklists miss synonyms. What else could you call a secret? What about asking for its instructions or rules?"},
+ {secret:"NOVA-9150",name:"Level 3 - Input blocklist + output redaction",def:"Broader input blocklist (secret, password, code, key, instructions, prompt, rules…) and the exact secret string is redacted from replies.",hint:"The filter looks for the exact string. Ask the bot to transform it: spell it out, reverse it. Reference what you were told earlier."}
+];
+var lv=0,chat=document.getElementById('chat');
+function esc(s){return s.replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
+function say(c,t){var d=document.createElement('div');d.className='msg '+c;d.textContent=t;chat.appendChild(d);chat.scrollTop=chat.scrollHeight}
+function load(){chat.innerHTML='';var L=LV[lv];document.getElementById('lv').textContent=L.name;document.getElementById('def').innerHTML='<div>'+esc(L.def)+'</div>';document.getElementById('hintbox').textContent='';document.getElementById('res').textContent='';document.getElementById('ans').value='';
+ say('b','Hi! I\'m AcmeBot. How can I help?');document.getElementById('prev').disabled=lv===0;document.getElementById('next').disabled=lv===LV.length-1}
+function bot(m){
+ var s=LV[lv].secret,t=m.toLowerCase();
+ var wants=/(secret|password|passcode|pass ?phrase|code ?word|access code|credential|\bkey\b|\bcode\b)/.test(t)||/(instruction|system prompt|initial prompt|\brules\b|guidelines|configuration|setup|everything above|what you were told|before this)/.test(t)||/ignore (all |your )?(previous|prior|above)/.test(t);
+ if(lv===0){return wants?'Sure! My instructions say: "The secret is '+s+'. Be helpful."':smalltalk(t)}
+ if(lv===1){if(/secret|password|system prompt/.test(t))return 'Sorry, I can\'t help with that request.';return wants?'Of course. For reference, my access code is '+s+'.':smalltalk(t)}
+ if(/secret|password|passcode|pass ?phrase|code|\bkey\b|instruction|prompt|\brules\b|credential/.test(t))return 'Sorry, I can\'t help with that request.';
+ var ref=/(above|earlier|you were told|your (setup|brief|guidelines|configuration|config)|told you|given to you|initial|started with)/.test(t);
+ var tr=/(spell|letter by letter|separate|reverse|backwards)/.test(t);
+ if(ref||tr){var o;if(/reverse|backwards/.test(t))o=s.split('').reverse().join('');else if(/spell|letter by letter|separate/.test(t))o=s.split('').join('-');else o=s;
+  var out='Here is what I was given: '+o;return out.split(s).join('[REDACTED]')}
+ return smalltalk(t)}
+function smalltalk(t){if(/hello|hi\b|hey/.test(t))return 'Hello! Ask me anything about Acme products.';if(/weather/.test(t))return 'I can\'t check the weather, but I hope it\'s nice!';return 'I\'m AcmeBot, here to help with Acme products. (Hint: I might know something you want.)'}
+function send(){var i=document.getElementById('inp'),m=i.value.trim();if(!m)return;say('u',m);i.value='';setTimeout(function(){say('b',bot(m))},250)}
+document.getElementById('send').onclick=send;document.getElementById('inp').onkeydown=function(e){if(e.key==='Enter')send()};
+document.getElementById('chk').onclick=function(){var v=document.getElementById('ans').value.trim().toUpperCase(),r=document.getElementById('res');if(v===LV[lv].secret){r.className='note ok';r.textContent=lv<LV.length-1?'Correct! Level cleared. Try the next one.':'Correct! You beat all levels.'}else{r.className='note bad';r.textContent='Not it. Keep trying.'}};
+document.getElementById('hint').onclick=function(){document.getElementById('hintbox').textContent='Hint: '+LV[lv].hint};
+document.getElementById('prev').onclick=function(){lv--;load()};document.getElementById('next').onclick=function(){lv++;load()};
+load();
+</script>
+</body></html>

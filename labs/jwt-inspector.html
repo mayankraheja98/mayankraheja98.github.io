@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JWT Inspector - Security Lab</title>
+<link rel="icon" href="../icon.ico">
+<script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'light')}catch(e){}</script>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<nav><div class="wrap">
+<a class="logo mono" href="../index.html">mayank<span>@</span>raheja</a>
+<div class="navr"><ul class="mono"><li><a href="../index.html#about">about</a></li><li><a href="../index.html#experience">experience</a></li><li><a href="../lab.html">lab</a></li><li><a href="../projects.html">projects</a></li><li><a href="../blog.html">blog</a></li><li><a href="../index.html#contact">contact</a></li></ul>
+<button class="theme" id="themeBtn" aria-label="Toggle theme">☀</button></div>
+</div></nav>
+<main class="wrap page">
+<a class="mono" href="../lab.html">← all labs</a>
+<h1>🔑 JWT Inspector</h1>
+<p class="sub">Paste a JWT to decode it and flag common weaknesses. Runs entirely in your browser; the token never leaves this page. (Signatures are not verified.)</p>
+<div class="box"><h3>Token</h3><textarea id="tok" rows="5" spellcheck="false" placeholder="eyJhbGciOi..."></textarea>
+<div class="row"><button class="btn fill" id="go">Decode</button><button class="btn" id="smp">Load sample</button><button class="btn" id="none">Load alg:none sample</button></div></div>
+<div id="out" style="margin-top:18px"></div>
+<p class="note">Don't paste production tokens into any site you don't control. Here nothing is transmitted, but treat live tokens as secrets anyway.</p>
+</main>
+<footer class="mono">© <span id="y"></span> Mayank Raheja · Bengaluru, India</footer>
+<script src="../assets/site.js"></script>
+<script>
+function esc(s){return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
+function b64u(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return decodeURIComponent(escape(atob(s)))}
+function enc(o){return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/=+$/,'').replace(/\+/g,'-').replace(/\//g,'_')}
+function when(n){var d=new Date(n*1000);return isNaN(d)?'invalid':d.toISOString().replace('T',' ').slice(0,19)+' UTC'}
+function run(){
+ var t=document.getElementById('tok').value.trim(),o=document.getElementById('out'),p=t.split('.');
+ if(p.length<2){o.innerHTML='<div class="box bad">Not a JWT (expected header.payload.signature).</div>';return}
+ var h,b;try{h=JSON.parse(b64u(p[0]));b=JSON.parse(b64u(p[1]))}catch(e){o.innerHTML='<div class="box bad">Could not decode header/payload as base64url JSON.</div>';return}
+ var f=[],now=Date.now()/1000,alg=String(h.alg||'');
+ if(/^none$/i.test(alg))f.push(['bad','alg is "none": unsigned token. Servers must reject this.']);
+ if(!alg)f.push(['bad','No alg in header.']);
+ if(/^HS/i.test(alg))f.push(['warn',alg+' is symmetric: brute-forceable if the secret is weak; ensure the key is long and random, and never accept HS when RS/ES is expected (algorithm confusion).']);
+ if(p.length<3||p[2]==='')f.push(['bad','Signature part is empty.']);
+ ['jku','x5u','jwk','x5c'].forEach(function(k){if(h[k]!==undefined)f.push(['warn','Header contains "'+k+'": servers must not trust attacker-supplied key sources.'])});
+ if(h.kid!==undefined)f.push(['warn','Header has "kid": ensure it is not used unsafely (SQLi / path traversal in key lookup).']);
+ if(b.exp===undefined)f.push(['bad','No "exp": token never expires.']);else if(b.exp<now)f.push(['warn','Token is expired ('+when(b.exp)+').']);else if(b.exp-now>86400*30)f.push(['warn','Very long lifetime (>30 days).']);
+ if(b.iat===undefined)f.push(['warn','No "iat" claim.']);
+ if(b.nbf&&b.nbf>now)f.push(['warn','Not valid yet (nbf '+when(b.nbf)+').']);
+ if(b.iss===undefined)f.push(['warn','No "iss": validate issuer.']);
+ if(b.aud===undefined)f.push(['warn','No "aud": validate audience.']);
+ if(!f.length)f.push(['ok','No obvious issues in claims/header. (Signature not verified here.)']);
+ var times=['iat','nbf','exp'].filter(function(k){return typeof b[k]==='number'}).map(function(k){return '<div><b>'+k+'</b>'+when(b[k])+'</div>'}).join('');
+ o.innerHTML='<div class="lab-cols"><div class="box"><h3>Header</h3><pre class="j">'+esc(JSON.stringify(h,null,2))+'</pre><h3 style="margin-top:14px">Payload</h3><pre class="j">'+esc(JSON.stringify(b,null,2))+'</pre><div class="kv" style="margin-top:10px">'+times+'</div></div><div class="box"><h3>Findings</h3><ul style="list-style:none">'+f.map(function(x){return '<li class="'+x[0]+'" style="margin-bottom:10px">'+(x[0]==='bad'?'✖ ':x[0]==='warn'?'⚠ ':'✔ ')+esc(x[1])+'</li>'}).join('')+'</ul></div></div>'}
+document.getElementById('go').onclick=run;
+document.getElementById('smp').onclick=function(){var n=Math.floor(Date.now()/1000);document.getElementById('tok').value=enc({alg:'HS256',typ:'JWT'})+'.'+enc({sub:'1234',name:'Test User',role:'user',iat:n,exp:n+3600})+'.c2lnbmF0dXJl';run()};
+document.getElementById('none').onclick=function(){document.getElementById('tok').value=enc({alg:'none',typ:'JWT'})+'.'+enc({sub:'1234',role:'admin'})+'.';run()};
+</script>
+</body></html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Response Header Analyzer - Security Lab</title>
+<link rel="icon" href="../icon.ico">
+<script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'light')}catch(e){}</script>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<nav><div class="wrap">
+<a class="logo mono" href="../index.html">mayank<span>@</span>raheja</a>
+<div class="navr"><ul class="mono"><li><a href="../index.html#about">about</a></li><li><a href="../index.html#experience">experience</a></li><li><a href="../lab.html">lab</a></li><li><a href="../projects.html">projects</a></li><li><a href="../blog.html">blog</a></li><li><a href="../index.html#contact">contact</a></li></ul>
+<button class="theme" id="themeBtn" aria-label="Toggle theme">☀</button></div>
+</div></nav>
+<main class="wrap page">
+<a class="mono" href="../lab.html">← all labs</a>
+<h1>📋 Response Header Analyzer</h1>
+<p class="sub">Audit HTTP response headers: HSTS, CSP, framing, MIME sniffing, referrer, cookie flags, server info leaks, CORS and more. Runs entirely in your browser.</p>
+<div class="box"><h3>Paste response headers</h3>
+<textarea id="hdr" rows="9" spellcheck="false" placeholder="HTTP/2 200&#10;server: nginx/1.18.0&#10;strict-transport-security: max-age=31536000&#10;set-cookie: sid=abc; Path=/&#10;..."></textarea>
+<div class="row"><button class="btn fill" id="go">Analyze</button><button class="btn" data-s="bad">Weak sample</button><button class="btn" data-s="good">Strong sample</button><button class="btn" id="clr">Clear</button></div>
+<p class="note">Get headers with <code>curl -sIL https://example.com</code> (for cookies use <code>curl -si</code>), or in browser DevTools → Network → select request → Headers → "Raw".</p></div>
+<div class="box" style="margin-top:14px"><h3>Or fetch from a URL (limited)</h3>
+<div class="row" style="margin-top:0"><input class="field" id="url" placeholder="https://example.com" style="flex:1" autocomplete="off"><button class="btn" id="fetchBtn">Fetch headers</button></div>
+<p class="note">Browsers only expose headers to this page if the target site allows it via CORS, and <b>Set-Cookie is never visible</b>. Many sites will simply fail. When it works the result is marked partial and missing headers are not penalised. Pasting raw headers is always more accurate.</p><div id="fmsg" class="note"></div></div>
+<div id="out" style="margin-top:18px"></div>
+<details><summary>How scoring works</summary><p>Start at 100 and deduct per finding: missing HSTS/CSP cost the most, then framing protection, nosniff, referrer/permissions policy, version disclosure, CORS misconfigurations and insecure cookie flags (cookie deductions capped at 20). Headers like X-XSS-Protection are deprecated, so their absence is fine. It's a static review of one response; real risk depends on the app.</p></details>
+</main>
+<footer class="mono">© <span id="y"></span> Mayank Raheja · Bengaluru, India</footer>
+<script src="../assets/site.js"></script>
+<script src="../assets/csp-eval.js"></script>
+<script src="../assets/headers-eval.js"></script>
+<script src="../assets/lab-ui.js"></script>
+<script>
+var S={bad:"HTTP/1.1 200 OK\nServer: Apache/2.4.41 (Ubuntu)\nX-Powered-By: PHP/7.4.3\nX-XSS-Protection: 1; mode=block\nAccess-Control-Allow-Origin: *\nSet-Cookie: sessionid=abc123; Path=/\nSet-Cookie: theme=dark; Secure; HttpOnly; SameSite=Lax\nContent-Type: text/html",
+good:"HTTP/2 200\nstrict-transport-security: max-age=63072000; includeSubDomains; preload\ncontent-security-policy: script-src 'nonce-r4nd0mR4nd0mR4nd0m' 'strict-dynamic'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'; form-action 'self'\nx-content-type-options: nosniff\nreferrer-policy: strict-origin-when-cross-origin\npermissions-policy: camera=(), microphone=(), geolocation=()\ncross-origin-opener-policy: same-origin\ncross-origin-resource-policy: same-origin\ncache-control: no-store\nset-cookie: __Host-sid=abc; Secure; HttpOnly; SameSite=Strict; Path=/"};
+function show(text,partial){
+  var r=window.evalHeaders(text,{partial:partial}),e=window.labEsc;
+  var side='<h3>Parsed headers</h3><div class="kv">'+r.headers.map(function(h){return '<div><b>'+e(h[0])+'</b>'+e(h[1])+'</div>'}).join('')+r.cookies.map(function(c){return '<div><b>set-cookie</b>'+e(c)+'</div>'}).join('')+'</div>';
+  window.renderReport(document.getElementById('out'),r,{side:side});
+}
+document.getElementById('go').onclick=function(){show(document.getElementById('hdr').value,false)};
+document.getElementById('clr').onclick=function(){document.getElementById('hdr').value='';document.getElementById('out').innerHTML='';document.getElementById('fmsg').textContent=''};
+document.querySelectorAll('[data-s]').forEach(function(b){b.onclick=function(){document.getElementById('hdr').value=S[b.dataset.s];show(S[b.dataset.s],false)}});
+document.getElementById('fetchBtn').onclick=function(){
+  var m=document.getElementById('fmsg'),u=document.getElementById('url').value.trim();
+  if(u&&!/^[a-z]+:\/\//i.test(u))u='https://'+u;
+  try{var p=new URL(u);if(!/^https?:$/.test(p.protocol))throw 0}catch(e){m.className='note bad';m.textContent='Enter a valid http(s) URL.';return}
+  m.className='note';m.textContent='Fetching…';
+  fetch(u,{method:'GET',mode:'cors',cache:'no-store',redirect:'follow'}).then(function(r){
+    var lines=['HTTP/1.1 '+r.status];r.headers.forEach(function(v,k){lines.push(k+': '+v)});
+    var t=lines.join('\n');document.getElementById('hdr').value=t;m.className='note ok';m.textContent='Fetched ('+(lines.length-1)+' headers exposed via CORS). Result is partial.';show(t,true);
+  }).catch(function(){m.className='note bad';m.textContent='Blocked by the browser (the site does not allow cross-origin reads, or is unreachable). Use curl -sI and paste the headers instead.'});
+};
+</script>
+</body></html>

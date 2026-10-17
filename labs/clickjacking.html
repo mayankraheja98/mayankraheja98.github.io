@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clickjacking Tester - Security Lab</title>
+<link rel="icon" href="../icon.ico">
+<script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'light')}catch(e){}</script>
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+.stage{position:relative;height:460px;border:1px dashed var(--line);border-radius:10px;overflow:hidden;background:var(--bg);margin-top:14px}
+.stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff}
+.decoy{position:absolute;padding:12px 22px;border-radius:8px;background:#e5484d;color:#fff;font-weight:700;border:0;font-size:16px;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+.ctl{display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-top:12px;font-size:13px;color:var(--mute)}.ctl input[type=range]{vertical-align:middle}
+.empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--mute);text-align:center;padding:20px}
+</style>
+</head>
+<body>
+<nav><div class="wrap">
+<a class="logo mono" href="../index.html">mayank<span>@</span>raheja</a>
+<div class="navr"><ul class="mono"><li><a href="../index.html#about">about</a></li><li><a href="../index.html#experience">experience</a></li><li><a href="../lab.html">lab</a></li><li><a href="../projects.html">projects</a></li><li><a href="../blog.html">blog</a></li><li><a href="../index.html#contact">contact</a></li></ul>
+<button class="theme" id="themeBtn" aria-label="Toggle theme">☀</button></div>
+</div></nav>
+<main class="wrap page">
+<a class="mono" href="../lab.html">← all labs</a>
+<h1>🖱 Clickjacking Tester</h1>
+<p class="sub">Load a site in a frame, see whether it can be embedded, and visualise how an attacker would overlay a decoy on top. Use it only on sites you own or are authorised to test.</p>
+<div class="box"><h3>Target</h3>
+<div class="row" style="margin-top:0"><input class="field" id="url" placeholder="https://your-site.example/account" style="flex:1;min-width:240px" autocomplete="off"><button class="btn fill" id="load">Load in frame</button></div>
+<div class="ctl"><label><input type="checkbox" id="sbx" checked> Sandbox the frame (blocks frame-busting scripts, like a real attacker would)</label></div>
+<div id="msg" class="note"></div></div>
+
+<div class="box" style="margin-top:14px"><h3>Attacker's view</h3>
+<div class="ctl" style="margin-top:0">
+<label>Frame opacity <input type="range" id="op" min="0" max="100" value="55"> <span id="opv">55%</span></label>
+<label>Decoy X <input type="range" id="dx" min="0" max="90" value="35"></label>
+<label>Decoy Y <input type="range" id="dy" min="0" max="90" value="45"></label>
+<label><input type="checkbox" id="dc" checked> Show decoy</label></div>
+<p class="note" style="margin-top:6px">A real attack sets opacity to 0 and aligns a sensitive button (delete account, transfer, like…) under a tempting decoy. Here the decoy ignores clicks so you can interact with the frame.</p>
+<div class="stage" id="stage"><div class="empty" id="empty">Enter a URL and click “Load in frame”.</div></div>
+<div id="verdict" style="margin-top:14px"></div></div>
+
+<div class="box" style="margin-top:14px"><h3>Cross-check with headers (definitive)</h3>
+<p class="note" style="margin:0 0 8px">Browsers hide whether a frame was blocked, so what you see is the real test. For a definitive answer, paste the page's response headers (<code>curl -sI URL</code>).</p>
+<textarea id="hdr" rows="5" spellcheck="false" placeholder="x-frame-options: DENY&#10;content-security-policy: frame-ancestors 'self'"></textarea>
+<div class="row"><button class="btn" id="chk">Check framing headers</button><button class="btn" id="fetchH">Try fetching headers (CORS sites only)</button></div>
+<div id="hres" class="note"></div></div>
+
+<details><summary>What does the result mean?</summary>
+<p>If the target renders inside the frame, any website can embed it. That is <b>clickjacking-prone</b>, but real impact needs a sensitive one-click action. Also, many session cookies are <code>SameSite=Lax/Strict</code>, so a cross-site frame is often logged out; test your page in the state a victim would be in.</p>
+<ul><li>Add <code>Content-Security-Policy: frame-ancestors 'none'</code> (or <code>'self'</code> / specific partners).</li><li>Add <code>X-Frame-Options: DENY</code> or <code>SAMEORIGIN</code> for old browsers.</li><li>Use SameSite cookies and re-authentication or confirmation for destructive actions.</li><li>Don't rely on JavaScript frame-busting alone; sandboxed frames defeat it.</li></ul>
+<p>If the frame is blank, shows "refused to connect" or a browser error icon, framing is blocked, which is the desired result. Note: this lab is served over HTTPS, so <code>http://</code> targets are blocked as mixed content and can't be tested here.</p></details>
+</main>
+<footer class="mono">© <span id="y"></span> Mayank Raheja · Bengaluru, India</footer>
+<script src="../assets/site.js"></script>
+<script src="../assets/csp-eval.js"></script>
+<script src="../assets/headers-eval.js"></script>
+<script>
+var $=function(i){return document.getElementById(i)},stage=$('stage'),fr=null,dec=null;
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function apply(){var o=$('op').value;$('opv').textContent=o+'%';if(fr)fr.style.opacity=o/100;
+  if(dec){dec.style.left=$('dx').value+'%';dec.style.top=$('dy').value+'%';dec.style.display=$('dc').checked?'block':'none'}}
+['op','dx','dy','dc'].forEach(function(i){$(i).oninput=apply});
+function norm(u){u=u.trim();if(!u)return null;if(!/^[a-z][a-z0-9+.-]*:\/\//i.test(u))u='https://'+u;
+  try{var p=new URL(u);return /^https?:$/.test(p.protocol)?p:null}catch(e){return null}}
+$('load').onclick=function(){
+  var p=norm($('url').value),m=$('msg');m.className='note';
+  if(!p){m.className='note bad';m.textContent='Enter a valid http(s) URL.';return}
+  if(p.protocol==='http:'){m.className='note warn';m.textContent='This page is HTTPS, so browsers will block an http:// frame (mixed content). Try the https:// version, or run this lab locally.'}
+  stage.innerHTML='';$('verdict').innerHTML='';
+  fr=document.createElement('iframe');fr.title='Target under test';fr.referrerPolicy='no-referrer';
+  if($('sbx').checked)fr.setAttribute('sandbox','allow-forms allow-scripts allow-same-origin allow-popups');
+  var t=Date.now(),done=false;
+  fr.onload=function(){if(done)return;done=true;
+    $('verdict').innerHTML='<div class="box" style="border-left:3px solid #f0b429"><h3>Look at the frame above</h3><p style="color:var(--mute);font-size:14.5px;margin-bottom:10px">Browsers do not tell scripts whether a frame was blocked, so you decide:</p><div class="row" style="margin-top:0"><button class="btn" id="yes">I can see the site</button><button class="btn" id="no">Blank / refused to connect</button></div></div>';
+    $('yes').onclick=function(){$('verdict').innerHTML='<div class="box" style="border-left:3px solid #ff6b6b"><h3 class="bad">Framable: potentially vulnerable to clickjacking</h3><p style="color:var(--mute);font-size:14.5px">Any site can embed this page. Check whether it has sensitive one-click actions, and add <code>frame-ancestors</code> / <code>X-Frame-Options</code>. Paste headers below to confirm what is (not) set.</p></div>'};
+    $('no').onclick=function(){$('verdict').innerHTML='<div class="box" style="border-left:3px solid #2ee6a6"><h3 class="ok">Framing appears blocked</h3><p style="color:var(--mute);font-size:14.5px">The browser refused to render the page in a frame (X-Frame-Options or CSP frame-ancestors). Confirm with the header check below, and also test sensitive sub-pages, since protection is sometimes applied per route.</p></div>'}};
+  fr.src=p.href;stage.appendChild(fr);
+  dec=document.createElement('div');dec.className='decoy';dec.textContent='🎁 Click here to claim your prize';stage.appendChild(dec);apply();
+};
+function showFrame(text,partial){var v=window.frameVerdict(text),h=$('hres');
+  if(v.framable===null){h.className='note bad';h.textContent=v.reason;return}
+  h.className='note '+(v.framable?'bad':'ok');h.textContent=(v.framable?'FRAMABLE (vulnerable to framing): ':'NOT framable: ')+v.reason+(partial?' (partial header view)':'')}
+$('chk').onclick=function(){showFrame($('hdr').value,false)};
+$('fetchH').onclick=function(){var p=norm($('url').value),h=$('hres');if(!p){h.className='note bad';h.textContent='Enter a valid URL above first.';return}
+  h.className='note';h.textContent='Fetching…';
+  fetch(p.href,{mode:'cors',cache:'no-store'}).then(function(r){var l=[];r.headers.forEach(function(v,k){l.push(k+': '+v)});$('hdr').value=l.join('\n');
+    var hasX=/x-frame-options|content-security-policy/i.test(l.join('\n'));
+    if(!hasX){h.className='note warn';h.textContent='CORS exposed headers, but X-Frame-Options / CSP are not among them. They may exist but be hidden, so this proves nothing. Use curl -sI and paste the headers.'}else showFrame(l.join('\n'),true)})
+  .catch(function(){h.className='note bad';h.textContent='Blocked by CORS or unreachable. Use curl -sI and paste the headers instead.'})};
+</script>
+</body></html>

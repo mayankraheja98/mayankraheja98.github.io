@@ -1,0 +1,15 @@
+[
+  {
+    "slug": "threat-modelling-llm-apps",
+    "file": "2026-10-13-threat-modelling-llm-apps.md",
+    "title": "Threat modelling an LLM app: where to start",
+    "date": "2026-10-13",
+    "tags": [
+      "AI Security",
+      "Threat Modelling"
+    ],
+    "summary": "A practical starting checklist for securing LLM-powered features: trust boundaries, untrusted input, tools, and data.",
+    "sample": true,
+    "words": 246
+  }
+]

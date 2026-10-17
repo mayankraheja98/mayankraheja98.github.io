@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPF / DMARC / DKIM Lookup - Security Lab</title>
+<link rel="icon" href="../icon.ico">
+<script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'light')}catch(e){}</script>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<nav><div class="wrap">
+<a class="logo mono" href="../index.html">mayank<span>@</span>raheja</a>
+<div class="navr"><ul class="mono"><li><a href="../index.html#about">about</a></li><li><a href="../index.html#experience">experience</a></li><li><a href="../lab.html">lab</a></li><li><a href="../projects.html">projects</a></li><li><a href="../blog.html">blog</a></li><li><a href="../index.html#contact">contact</a></li></ul>
+<button class="theme" id="themeBtn" aria-label="Toggle theme">☀</button></div>
+</div></nav>
+<main class="wrap page">
+<a class="mono" href="../lab.html">← all labs</a>
+<h1>✉️ SPF / DMARC / DKIM Lookup</h1>
+<p class="sub">Check whether a domain can be spoofed by email. Looks up SPF (with recursive DNS-lookup counting), DMARC, DKIM, MX and MTA-STS, then scores and explains the gaps.</p>
+<div class="box"><h3>Domain</h3>
+<div class="row" style="margin-top:0"><input class="field" id="dom" placeholder="example.com" style="flex:2;min-width:200px" autocomplete="off"><input class="field" id="sel" placeholder="DKIM selector (optional)" style="flex:1;min-width:160px" autocomplete="off"><button class="btn fill" id="go">Lookup</button></div>
+<div id="msg" class="note"></div>
+<p class="note">Privacy: lookups use public DNS-over-HTTPS (Google Public DNS, falling back to Cloudflare), so the domain name you enter is sent to those resolvers from your browser. Nothing goes to this site's server (there isn't one). DKIM selectors can't be enumerated: leave blank to try ~15 common ones, or enter the exact selector from an email's <code>DKIM-Signature: s=</code> tag.</p></div>
+<div id="out" style="margin-top:18px"></div>
+<details><summary>How scoring works</summary><p>Starts at 100. Missing SPF or DMARC are critical (-30 each). DMARC p=none, +all/?all, more than 10 SPF lookups, multiple records and weak DKIM keys deduct further. A domain without enforced DMARC (quarantine/reject) is reported as spoofable. This only inspects DNS: it cannot confirm your mail servers actually sign or align correctly. Check real message headers for that.</p></details>
+</main>
+<footer class="mono">© <span id="y"></span> Mayank Raheja · Bengaluru, India</footer>
+<script src="../assets/site.js"></script>
+<script src="../assets/email-auth.js"></script>
+<script src="../assets/lab-ui.js"></script>
+<script>
+var cache={};
+function unq(d){var m=d.match(/"((?:[^"\\]|\\.)*)"/g);return m?m.map(function(x){return x.slice(1,-1).replace(/\\(.)/g,'$1')}).join(''):d}
+async function doh(name,type){
+  var key=type+':'+name;if(cache[key])return cache[key];
+  var urls=['https://dns.google/resolve?name='+encodeURIComponent(name)+'&type='+type,'https://cloudflare-dns.com/dns-query?name='+encodeURIComponent(name)+'&type='+type],j=null,err;
+  for(var i=0;i<urls.length&&!j;i++){try{var r=await fetch(urls[i],{headers:{accept:'application/dns-json'}});if(!r.ok)throw new Error('HTTP '+r.status);j=await r.json()}catch(e){err=e}}
+  if(!j)throw err||new Error('DNS-over-HTTPS unavailable');
+  var out=[];if(j.Status===0||j.Status===3)out=(j.Answer||[]).filter(function(a){return a.type===(type==='TXT'?16:15)}).map(function(a){return a.data});
+  else throw new Error('DNS error (status '+j.Status+')');
+  return cache[key]=out;
+}
+var dns={txt:async function(n){return (await doh(n,'TXT')).map(unq)},mx:async function(n){return (await doh(n,'MX')).map(function(x){return x.replace(/\.$/,'')})}};
+async function run(){
+  var m=document.getElementById('msg'),e=window.labEsc,btn=document.getElementById('go');
+  m.className='note';m.textContent='Looking up…';btn.disabled=true;cache={};
+  try{
+    var r=await window.analyzeEmailAuth(document.getElementById('dom').value,dns,{selector:document.getElementById('sel').value});
+    m.textContent='';var i=r.info;
+    var side='<h3>Records for '+e(r.domain)+'</h3><div class="kv"><div><b>SPF</b>'+e(i.spf||'(none)')+'</div><div><b>SPF lookups</b>'+i.spfLookups+' / 10'+(i.spfIncludes.length?' · includes: '+e(i.spfIncludes.join(', ')):'')+'</div><div><b>DMARC</b>'+e(i.dmarc||'(none)')+'</div><div><b>DKIM</b>'+(i.dkim.length?i.dkim.map(function(d){return e(d[0])+': '+e(d[1].slice(0,60))+'…'}).join('<br>'):'(none found)')+'</div><div><b>MX</b>'+(i.mx.length?e(i.mx.join(', ')):'(none)')+'</div></div>';
+    window.renderReport(document.getElementById('out'),r,{side:side});
+  }catch(x){m.className='note bad';m.textContent=x.message||'Lookup failed';document.getElementById('out').innerHTML=''}
+  btn.disabled=false;
+}
+document.getElementById('go').onclick=run;
+document.getElementById('dom').onkeydown=function(e){if(e.key==='Enter')run()};
+</script>
+</body></html>

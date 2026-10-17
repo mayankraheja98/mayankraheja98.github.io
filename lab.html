@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security Lab - Mayank Raheja</title>
+<meta name="description" content="Interactive security experiments: AI security, AppSec, DevSecOps and more.">
+<link rel="icon" href="icon.ico">
+<script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'light')}catch(e){}</script>
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<nav><div class="wrap">
+<a class="logo mono" href="index.html">mayank<span>@</span>raheja</a>
+<div class="navr"><ul class="mono"><li><a href="index.html#about">about</a></li><li><a href="index.html#experience">experience</a></li><li><a href="lab.html">lab</a></li><li><a href="projects.html">projects</a></li><li><a href="blog.html">blog</a></li><li><a href="index.html#contact">contact</a></li></ul>
+<button class="theme" id="themeBtn" aria-label="Toggle theme">☀</button></div>
+</div></nav>
+<main class="wrap page">
+<h1>Security Lab</h1>
+<p class="sub">Interactive experiments. Everything runs in your browser; nothing is sent anywhere.</p>
+<div class="filters mono" id="f"></div>
+<div class="grid" id="g"></div>
+</main>
+<footer class="mono">© <span id="y"></span> Mayank Raheja · Bengaluru, India</footer>
+<script src="assets/labs.js"></script><script src="assets/site.js"></script>
+<script>
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+var L=window.LABS,cats={};L.forEach(function(x){cats[x.category]=1});
+document.getElementById('f').innerHTML='<button class="on" data-t="">all</button>'+Object.keys(cats).map(function(c){return '<button data-t="'+esc(c)+'">'+esc(c)+'</button>'}).join('');
+function draw(t){document.getElementById('g').innerHTML=L.filter(function(x){return !t||x.category===t}).map(function(x){return '<a class="card post-card" href="labs/'+x.slug+'.html"><div style="font-size:26px">'+x.icon+'</div><h3 style="margin-top:6px">'+esc(x.title)+'</h3><p>'+esc(x.summary)+'</p><div class="chips"><span class="chip">'+esc(x.category)+'</span><span class="chip">'+esc(x.level)+'</span>'+x.tags.map(function(g){return '<span class="chip">'+esc(g)+'</span>'}).join('')+'</div></a>'}).join('')}
+draw('');
+document.getElementById('f').onclick=function(e){var b=e.target.closest('button');if(!b)return;[].forEach.call(this.children,function(c){c.classList.remove('on')});b.classList.add('on');draw(b.dataset.t)};
+</script>
+</body></html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSP Evaluator - Security Lab</title>
+<link rel="icon" href="../icon.ico">
+<script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'light')}catch(e){}</script>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<nav><div class="wrap">
+<a class="logo mono" href="../index.html">mayank<span>@</span>raheja</a>
+<div class="navr"><ul class="mono"><li><a href="../index.html#about">about</a></li><li><a href="../index.html#experience">experience</a></li><li><a href="../lab.html">lab</a></li><li><a href="../projects.html">projects</a></li><li><a href="../blog.html">blog</a></li><li><a href="../index.html#contact">contact</a></li></ul>
+<button class="theme" id="themeBtn" aria-label="Toggle theme">☀</button></div>
+</div></nav>
+<main class="wrap page">
+<a class="mono" href="../lab.html">← all labs</a>
+<h1>🛡 CSP Evaluator</h1>
+<p class="sub">Paste a Content-Security-Policy (header value, full header line, or &lt;meta&gt; tag). Get a score, the gaps, and fixes. Runs entirely in your browser.</p>
+<div class="box"><h3>Policy</h3><textarea id="csp" rows="5" spellcheck="false" placeholder="default-src 'self'; script-src 'self' 'unsafe-inline'; ..."></textarea>
+<div class="row"><button class="btn fill" id="go">Evaluate</button><button class="btn" data-s="weak">Weak sample</button><button class="btn" data-s="mid">Typical sample</button><button class="btn" data-s="strong">Strict sample</button><button class="btn" id="clr">Clear</button></div></div>
+<div id="out" style="margin-top:18px"></div>
+<details><summary>How scoring works</summary><p>Starts at 100 and deducts points per finding (critical/high gaps in script control cost the most). If scripts are not effectively restricted, the score is capped at 49, since the policy will not stop XSS. Report-Only policies are capped at 40. This is a static heuristic, not a substitute for testing: it can't see your app, server-side nonce generation or other headers.</p></details>
+<details><summary>Recommended baseline (strict, nonce-based)</summary><pre class="j" id="rec"></pre><div class="row"><button class="btn" id="cp">Copy</button></div><p>Replace <code>{RANDOM}</code> with a fresh random nonce per response and add the nonce to every legitimate &lt;script&gt; tag.</p></details>
+</main>
+<footer class="mono">© <span id="y"></span> Mayank Raheja · Bengaluru, India</footer>
+<script src="../assets/site.js"></script>
+<script src="../assets/csp-eval.js"></script>
+<script>
+var S={weak:"default-src * 'unsafe-inline' 'unsafe-eval'",
+mid:"default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; img-src * data:; style-src 'self' 'unsafe-inline'",
+strong:"script-src 'nonce-r4nd0mR4nd0mR4nd0m==' 'strict-dynamic' https: 'unsafe-inline'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'; form-action 'self'; upgrade-insecure-requests; require-trusted-types-for 'script'; report-to csp-endpoint"};
+var REC="script-src 'nonce-{RANDOM}' 'strict-dynamic' https: 'unsafe-inline'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'; form-action 'self'; upgrade-insecure-requests; report-to csp-endpoint";
+document.getElementById('rec').textContent=REC;
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+var COL={critical:'#ff4d4d',high:'#ff6b6b',medium:'#f0b429',low:'#5ab0ff',info:'#8a98ad',good:'#2ee6a6'};
+function run(){
+ var r=window.evalCSP(document.getElementById('csp').value),o=document.getElementById('out');
+ var col=r.score>=75?'#2ee6a6':r.score>=50?'#f0b429':'#ff6b6b';
+ var counts={};r.findings.forEach(function(f){counts[f.sev]=(counts[f.sev]||0)+1});
+ var chips=['critical','high','medium','low','info','good'].filter(function(k){return counts[k]}).map(function(k){return '<span class="chip" style="color:'+COL[k]+';border-color:'+COL[k]+'">'+counts[k]+' '+k+'</span>'}).join('');
+ var dir=r.directives.map(function(d){return '<div><b>'+esc(d[0])+'</b>'+esc(d[1].join(' ')||'(no value)')+'</div>'}).join('');
+ var list=r.findings.map(function(f){return '<div class="box" style="border-left:3px solid '+COL[f.sev]+';margin-bottom:10px"><div class="mono" style="font-size:12px;color:'+COL[f.sev]+'">'+f.sev.toUpperCase()+(f.pts?' · −'+f.pts:'')+'</div><h3 style="margin:4px 0">'+esc(f.title)+'</h3><p style="color:var(--mute);font-size:14.5px">'+esc(f.detail)+'</p><p style="font-size:14.5px;margin-top:6px"><b class="ok">Fix:</b> '+esc(f.fix)+'</p></div>'}).join('');
+ o.innerHTML='<div class="lab-cols"><div class="box" style="display:flex;gap:22px;align-items:center;flex-wrap:wrap"><div style="width:120px;height:120px;border-radius:50%;background:conic-gradient('+col+' '+r.score*3.6+'deg,var(--line) 0);display:grid;place-items:center"><div style="width:96px;height:96px;border-radius:50%;background:var(--panel);display:grid;place-items:center;text-align:center"><div><div style="font-size:32px;font-weight:700;color:'+col+'">'+r.score+'</div><div class="mono" style="font-size:12px;color:var(--mute)">grade '+r.grade+'</div></div></div></div><div style="flex:1;min-width:200px"><h3 style="font-size:17px;margin-bottom:8px">'+esc(r.verdict)+'</h3><div class="chips">'+chips+'</div></div></div><div class="box"><h3>Parsed directives</h3><div class="kv">'+(dir||'none')+'</div></div></div><h2 style="margin-top:26px">Findings &amp; recommendations</h2>'+list;
+}
+document.getElementById('go').onclick=run;
+document.getElementById('clr').onclick=function(){document.getElementById('csp').value='';document.getElementById('out').innerHTML=''};
+document.querySelectorAll('[data-s]').forEach(function(b){b.onclick=function(){document.getElementById('csp').value=S[b.dataset.s];run()}});
+document.getElementById('cp').onclick=function(){var b=this;(navigator.clipboard?navigator.clipboard.writeText(REC):Promise.reject()).then(function(){b.textContent='Copied'},function(){b.textContent='Copy failed'})};
+</script>
+</body></html>
