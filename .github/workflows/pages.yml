@@ -4,6 +4,8 @@ on:
   push:
     branches: [main, master]
   workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * *'  # daily: picks up new Medium posts
 
 permissions:
   contents: read

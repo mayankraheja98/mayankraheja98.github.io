@@ -1,5 +1,19 @@
 [
   {
+    "slug": "medium-e5b5806a264a",
+    "file": "",
+    "url": "https://rahejahere.medium.com/php2shell-ai-will-find-the-bugs-but-who-will-secure-the-infra-e5b5806a264a",
+    "source": "medium",
+    "title": "PHP2Shell: AI will find the Bugs, but who will secure the Infra?",
+    "date": "2026-10-23",
+    "tags": [
+      "Medium"
+    ],
+    "summary": "Over the past couple of days, PHP2Shell (CVE-2026–109618 & CVE-2026–109619) has made headlines. These are two critical vulnerabilities in core PHP that can…",
+    "sample": false,
+    "words": 488
+  },
+  {
     "slug": "threat-modelling-llm-apps",
     "file": "2026-10-13-threat-modelling-llm-apps.md",
     "title": "Threat modelling an LLM app: where to start",
@@ -11,5 +25,61 @@
     "summary": "A practical starting checklist for securing LLM-powered features: trust boundaries, untrusted input, tools, and data.",
     "sample": true,
     "words": 246
+  },
+  {
+    "slug": "medium-fa7f7f06feab",
+    "file": "",
+    "url": "https://rahejahere.medium.com/shielding-software-the-power-of-secure-development-training-fa7f7f06feab",
+    "source": "medium",
+    "title": "Shielding Software: The Power of Secure Development Training",
+    "date": "2024-04-27",
+    "tags": [
+      "Medium"
+    ],
+    "summary": "In today’s digital age, where cyber threats loom large and data breaches seem to make headlines every other day, the importance of secure development practices…",
+    "sample": false,
+    "words": 296
+  },
+  {
+    "slug": "medium-a5fec7dde360",
+    "file": "",
+    "url": "https://rahejahere.medium.com/tampering-encrypted-parameter-to-account-takeover-a5fec7dde360",
+    "source": "medium",
+    "title": "Tampering Encrypted Parameter to Account Takeover",
+    "date": "2020-05-24",
+    "tags": [
+      "Medium"
+    ],
+    "summary": "Hola Infosec! Thanks for showing so much love to my previous story . Just like my last writeup, today also I am going to share an interesting finding of mine.…",
+    "sample": false,
+    "words": 700
+  },
+  {
+    "slug": "medium-3bbe13b1ea74",
+    "file": "",
+    "url": "https://rahejahere.medium.com/how-i-was-able-to-takeover-companys-instagram-page-in-2-minutes-3bbe13b1ea74",
+    "source": "medium",
+    "title": "How I was able to takeover Company’s Instagram page in 2 minutes!!",
+    "date": "2020-05-03",
+    "tags": [
+      "Medium"
+    ],
+    "summary": "Hi Hunters, this is my second blog post(well the first one was just a Hello World!). I am going to share a vulnerability which I found very recently. The issue…",
+    "sample": false,
+    "words": 337
+  },
+  {
+    "slug": "medium-3942d88ce1f4",
+    "file": "",
+    "url": "https://rahejahere.medium.com/hola-infosec-3942d88ce1f4",
+    "source": "medium",
+    "title": "Hola Infosec!",
+    "date": "2020-04-04",
+    "tags": [
+      "Medium"
+    ],
+    "summary": "It’s been a while since I had been thinking to start a blog but it always got delayed for some reason or other. But as Coronavirus got everyone to stay at…",
+    "sample": false,
+    "words": 106
   }
 ]

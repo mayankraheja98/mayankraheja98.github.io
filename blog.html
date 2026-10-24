@@ -31,7 +31,7 @@ function list(){
   if(!POSTS.length){main.innerHTML='<h1>Blog</h1><p class="sub">No posts yet. Check back soon.</p>';return}
   var all={};POSTS.forEach(function(x){x.tags.forEach(function(t){all[t]=1})});
   main.innerHTML='<h1>Blog</h1><p class="sub">Notes on DevSecOps, AppSec and AI security.</p><div class="filters mono" id="f"><button class="on" data-t="">all</button>'+Object.keys(all).map(function(t){return '<button data-t="'+esc(t)+'">'+esc(t)+'</button>'}).join('')+'</div><div class="grid" id="g"></div>';
-  function draw(t){document.getElementById('g').innerHTML=POSTS.filter(function(x){return !t||x.tags.indexOf(t)>-1}).map(function(x){return '<a class="card post-card" href="#'+x.slug+'"><div class="meta mono">'+fmt(x.date)+' · '+mins(x.words)+' min</div><h3 style="margin-top:6px">'+esc(x.title)+'</h3><p>'+esc(x.summary)+'</p>'+tags(x)+'</a>'}).join('')}
+  function draw(t){document.getElementById('g').innerHTML=POSTS.filter(function(x){return !t||x.tags.indexOf(t)>-1}).map(function(x){var ext=x.url&&/^https:\/\//.test(x.url);return '<a class="card post-card" href="'+(ext?esc(x.url)+'" target="_blank" rel="noopener':'#'+x.slug)+'"><div class="meta mono">'+fmt(x.date)+' · '+mins(x.words)+' min'+(ext?' · medium ↗':'')+'</div><h3 style="margin-top:6px">'+esc(x.title)+'</h3><p>'+esc(x.summary)+'</p>'+tags(x)+'</a>'}).join('')}
   draw('');
   document.getElementById('f').onclick=function(e){var b=e.target.closest('button');if(!b)return;[].forEach.call(this.children,function(c){c.classList.remove('on')});b.classList.add('on');draw(b.dataset.t)};
 }
