@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quotes - Mayank Raheja</title>
+<meta name="description" content="Quotes on security, engineering and thinking that Mayank Raheja keeps coming back to.">
+<link rel="icon" href="icon.ico">
+<script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'light')}catch(e){}</script>
+<link rel="stylesheet" href="assets/site.css">
+<style>
+.qsec{padding:0;margin-bottom:28px}.qsec h2{margin-bottom:14px}
+.q{border-left:3px solid var(--accent);padding:4px 0 4px 18px;margin:0 0 20px}
+.q p{font-size:17px;color:var(--text);margin:0 0 4px}
+.q cite{font-style:normal;color:var(--mute);font-size:13.5px}
+</style>
+</head>
+<body>
+<nav><div class="wrap">
+<a class="logo mono" href="index.html">mayank<span>@</span>raheja</a>
+<div class="navr"><ul class="mono"><li><a href="lab.html">lab</a></li><li><a href="projects.html">projects</a></li><li><a href="blog.html">blog</a></li><li><a href="quotes.html">quotes</a></li></ul>
+<button class="theme" id="themeBtn" aria-label="Toggle theme">☀</button></div>
+</div></nav>
+<main class="wrap page">
+<h1>Quotes</h1>
+<p class="sub">A few lines I keep coming back to. Reminders about security, systems and how easy it is to fool yourself.</p>
+<div id="q"></div>
+</main>
+<footer class="mono">© <span id="y"></span> Mayank Raheja · Bengaluru, India</footer>
+<script src="assets/site.js"></script>
+<script>
+// Edit this list. Sections render in order.
+var QUOTES=[
+ {s:"Security",q:[
+  ["Security is a process, not a product.","Bruce Schneier"],
+  ["Complexity is the worst enemy of security.","Bruce Schneier"],
+  ["The enemy knows the system.","Claude Shannon (Shannon's maxim)"],
+  ["The only truly secure system is one that is powered off, cast in a block of concrete and sealed in a lead-lined room with armed guards - and even then I have my doubts.","Gene Spafford"]
+ ]},
+ {s:"Mindset",q:[
+  ["The first principle is that you must not fool yourself - and you are the easiest person to fool.","Richard Feynman"],
+  ["Trust, but verify.","Russian proverb"],
+  ["If you know the enemy and know yourself, you need not fear the result of a hundred battles.","Sun Tzu, The Art of War"]
+ ]}
+];
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+document.getElementById('q').innerHTML=QUOTES.map(function(g){
+ return '<section class="qsec"><h2 class="mono">'+esc(g.s)+'</h2>'+g.q.map(function(x){return '<blockquote class="q"><p>'+esc(x[0])+'</p><cite>- '+esc(x[1])+'</cite></blockquote>'}).join('')+'</section>'}).join('');
+</script>
+</body>
+</html>
